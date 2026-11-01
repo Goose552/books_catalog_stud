@@ -5,7 +5,7 @@ from sqlalchemy import JSON, VARCHAR, Boolean, DateTime, SmallInteger, Text, fun
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.library_catalog.core.database import Base
+from library_catalog.core.database import Base
 
 
 class Book(Base):

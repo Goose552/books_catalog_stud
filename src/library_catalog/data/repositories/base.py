@@ -1,10 +1,11 @@
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import delete, insert, inspect, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.library_catalog.core.database import Base
+from library_catalog.core.database import Base
 
 ModelVar = TypeVar("ModelVar", bound=Base)
 
@@ -41,7 +42,7 @@ class BaseRepository(Generic[ModelVar]):
 
         pk = inspect(self.model).primary_key[0]
         delete_data_stmt = delete(self.model).where(pk == id)
-        res = await self.session.execute(delete_data_stmt)
+        res = cast(CursorResult, await self.session.execute(delete_data_stmt))
         return res.rowcount > 0
 
     async def get_all(
