@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class OpenLibrarySearchDoc(BaseModel):
     """Документ из поиска Open Library."""
-    model_config=ConfigDict(populate_by_name=True)
-    
-    
+
+    model_config = ConfigDict(populate_by_name=True)
+
     title: str
     author_name: list[str] | None = Field(None, alias="author_name")
     cover_id: int | None = Field(None, alias="cover_i")
@@ -12,11 +13,10 @@ class OpenLibrarySearchDoc(BaseModel):
     publisher: list[str] | None = None
     language: list[str] | None = None
     ratings_average: float | None = Field(None, alias="ratings_average")
-    
+
 
 class OpenLibrarySearchResponse(BaseModel):
     """Ответ от /search.json"""
-    
+
     numFound: int
     docs: list[OpenLibrarySearchDoc]
-    

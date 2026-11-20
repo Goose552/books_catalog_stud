@@ -25,3 +25,9 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
         except Exception:
             await session.rollback()
+            raise
+
+
+async def dispose_engine() -> None:
+    """Закрыть все соединения с БД."""
+    await engine.dispose()

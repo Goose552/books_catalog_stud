@@ -3,7 +3,13 @@ from uuid import UUID
 
 from library_catalog.api.v1.schemas.book import BookCreate, BookUpdate, ShowBook
 from library_catalog.data.repositories.book_repository import BookRepository
-from library_catalog.domain.exceptions import *
+from library_catalog.domain.exceptions import (
+    BookAlreadyExistsException,
+    BookNotFoundException,
+    InvalidPagesException,
+    InvalidYearException,
+    OpenLibraryException,
+)
 from library_catalog.domain.mappers.book_mapper import BookMapper
 from library_catalog.external.openlibrary.client import OpenLibraryClient
 
@@ -69,7 +75,7 @@ class BookService:
         )
 
         # 5. Возвращаем объект пайдентика
-
+        await self.book_repo.session.commit()
         return BookMapper.to_show_book(book)
 
     async def get_book(self, book_id: UUID) -> ShowBook:
@@ -121,6 +127,7 @@ class BookService:
         deleted = await self.book_repo.delete(book_id)
         if not deleted:
             raise BookNotFoundException(book_id)
+        await self.book_repo.session.commit()
 
     async def search_book(
         self,
