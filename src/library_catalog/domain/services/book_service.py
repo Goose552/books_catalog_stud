@@ -1,5 +1,8 @@
 import logging
 from uuid import UUID
+from datetime import datetime
+
+from sqlalchemy.exc import IntegrityError
 
 from library_catalog.api.v1.schemas.book import BookCreate, BookUpdate, ShowBook
 from library_catalog.data.repositories.book_repository import BookRepository
@@ -63,26 +66,28 @@ class BookService:
         extra = await self._enrich_book_data(book_data)
 
         # 4. Содание записи
-        book = await self.book_repo.create(
-            title=book_data.title,
-            author=book_data.author,
-            year=book_data.year,
-            genre=book_data.genre,
-            pages=book_data.pages,
-            isbn=book_data.isbn,
-            description=book_data.description,
-            extra=extra,
-        )
-
-        # 5. Возвращаем объект пайдентика
-        await self.book_repo.session.commit()
+        try:
+            book = await self.book_repo.create(
+                title=book_data.title,
+                author=book_data.author,
+                year=book_data.year,
+                genre=book_data.genre,
+                pages=book_data.pages,
+                isbn=book_data.isbn,
+                description=book_data.description,
+                extra=extra,
+            )
+            await self.book_repo.session.commit()
+        except IntegrityError as e:
+            await self.book_repo.session.rollback()
+            raise BookAlreadyExistsException(book_data.isbn or "") from e
         return BookMapper.to_show_book(book)
 
     async def get_book(self, book_id: UUID) -> ShowBook:
         """
         Получить книгу по ID.
 
-        Returns:
+        Raises:
             BookNotFoundException: Если книга не найдена
         """
         book = await self.book_repo.get_by_id(book_id)
@@ -91,30 +96,46 @@ class BookService:
         return BookMapper.to_show_book(book)
 
     async def update_book(
-        self,
-        book_id: UUID,
-        book_data: BookUpdate,
+    self,
+    book_id: UUID,
+    book_data: BookUpdate,
     ) -> ShowBook:
         """
         Обновить книгу.
-
-        Обновляются только переданные поля
-
+    
+        Обновляются только переданные поля.
+    
         Returns:
             ShowBook: измененная книга
-            BookNotFoundExecption: в случае если книга не найдена.
+    
+        Raises:
+            BookNotFoundException: если книга не найдена
+            BookAlreadyExistsException: если ISBN занят другой книгой
         """
         if book_data.year is not None:
             self._validate_year(book_data.year)
         if book_data.pages is not None:
             self._validate_pages(book_data.pages)
-
-        updated = await self.book_repo.update(
-            book_id, **book_data.model_dump(exclude_unset=True)
-        )
-        if updated is None:
-            raise BookNotFoundException(book_id)
-
+    
+        current = await self.get_book(book_id)  # 404, если книги нет
+    
+        changes = book_data.model_dump(exclude_unset=True)
+    
+        new_isbn = changes.get("isbn")
+        if new_isbn and new_isbn != current.isbn:
+            existing = await self.book_repo.find_by_isbn(new_isbn)
+            if existing and existing.book_id != book_id:
+                raise BookAlreadyExistsException(new_isbn)
+    
+        try:
+            updated = await self.book_repo.update(book_id, **changes)
+            if updated is None:
+                raise BookNotFoundException(book_id)
+            await self.book_repo.session.commit()
+        except IntegrityError as e:
+            await self.book_repo.session.rollback()
+            raise BookAlreadyExistsException(new_isbn or "") from e
+    
         return BookMapper.to_show_book(updated)
 
     async def delete_book(self, book_id: UUID) -> None:
@@ -172,7 +193,7 @@ class BookService:
 
     def _validate_year(self, year: int) -> None:
         """Проверить что год валиден."""
-        from datetime import datetime
+        
 
         current_year = datetime.now().year
         if year < 1000 or year > current_year:

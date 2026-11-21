@@ -31,9 +31,7 @@ class Book(Base):
         index=True,
     )
     genre: Mapped[str] = mapped_column(VARCHAR(100), index=True)
-    pages: Mapped[int] = mapped_column(
-        SmallInteger,
-    )
+    pages: Mapped[int]
     available: Mapped[bool] = mapped_column(Boolean, index=True, default=True)
     isbn: Mapped[str | None] = mapped_column(VARCHAR(20), unique=True)
     description: Mapped[str | None] = mapped_column(Text)

@@ -8,7 +8,7 @@ T = TypeVar("T")
 class PaginationParams(BaseModel):
     """Параметры пагинации"""
 
-    page: int = Field(1, ge=1, description="Номер страницы")
+    page: int = Field(1, ge=1, le=100_000, description="Номер страницы")
     page_size: int = Field(20, ge=1, le=100, description="Размер страницы")
 
     @property

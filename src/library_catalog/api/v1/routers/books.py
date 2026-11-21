@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from library_catalog.api.dependencies import BookServiceDep
 from library_catalog.api.v1.schemas.book import BookCreate, BookUpdate, ShowBook
 from library_catalog.api.v1.schemas.common import PaginatedResponse, PaginationParams
+from library_catalog.api.v1.schemas.types_validate import SafeStr
 
 router = APIRouter(prefix="/books", tags=["Book"])
 
@@ -41,10 +42,10 @@ async def create_book(book_data: BookCreate, service: BookServiceDep):
 async def get_books(
     service: BookServiceDep,
     pagination: Annotated[PaginationParams, Depends()],
-    title: str | None = Query(None, description="Поиск по названию"),
-    author: str | None = Query(None, description="Поиск по автору"),
-    genre: str | None = Query(None, description="Фильтр по жанру"),
-    year: int | None = Query(None, description="Фильтр по году"),
+    title: SafeStr | None = Query(None, description="Поиск по названию"),
+    author: SafeStr | None = Query(None, description="Поиск по автору"),
+    genre: SafeStr | None = Query(None, description="Фильтр по жанру"),
+    year: int | None = Query(None, ge=1000, le=2100, description="Фильтр по году"),
     available: bool | None = Query(None, description="Фильтр по доступности"),
 ):
     """

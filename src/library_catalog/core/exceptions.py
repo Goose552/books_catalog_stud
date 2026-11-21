@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from typing import Any
 
+
 class AppException(Exception):
     """Базовое исключение приложения."""
 
